@@ -150,9 +150,10 @@ export function computeOpportunity(
   else if (opportunityScore < 42 || saturatedIncumbent) recommendation = "Avoid";
   else recommendation = "Watch";
 
+  /** Aligned with synthetic feeds (GPT / Rainforest) that emit 4 snapshots on 4 distinct days. */
   let confidenceLevel: ConfidenceLevel = "Low";
   if (uniqueSignalDays >= 5 && totalSnaps >= 10) confidenceLevel = "High";
-  else if (uniqueSignalDays >= 3 && totalSnaps >= 5) confidenceLevel = "Medium";
+  else if (uniqueSignalDays >= 3 && totalSnaps >= 4) confidenceLevel = "Medium";
   else confidenceLevel = "Low";
 
   const explanationBullets: string[] = [];

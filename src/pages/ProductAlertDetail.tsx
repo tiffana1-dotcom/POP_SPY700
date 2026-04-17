@@ -85,7 +85,9 @@ export function ProductAlertDetail() {
                     {product.retailer === "yamibuy" ? "Yamibuy SKU · " : "ASIN · "}
                     {product.asin}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">{product.category}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    PoP category · {product.pop.popCategory}
+                  </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {product.buyer.marketplaces.map((m) => (
@@ -181,6 +183,77 @@ export function ProductAlertDetail() {
                   </li>
                 ))}
               </ul>
+            </section>
+
+            <section className="rounded-xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/40 to-white p-5 shadow-card">
+              <h2 className="text-sm font-semibold text-slate-900">
+                PoP discovery lens
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-800">
+                {product.pop.buyerActionSummary}
+              </p>
+              <p className="mt-3 text-xs leading-relaxed text-slate-600">
+                {product.pop.compositeContext}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {product.pop.opportunityAngles.map((a) => (
+                  <span
+                    key={a}
+                    className="rounded-md bg-white px-2 py-1 text-[11px] font-medium text-emerald-950 ring-1 ring-emerald-200/80"
+                  >
+                    {a === "distribute_existing"
+                      ? "Distribute existing SKU"
+                      : "Develop PoP-branded line"}
+                  </span>
+                ))}
+              </div>
+              {product.pop.lineExtensionIdeas.length > 0 ? (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-slate-500">
+                    Line-extension ideas
+                  </p>
+                  <ul className="mt-2 space-y-1.5 text-sm text-slate-700">
+                    {product.pop.lineExtensionIdeas.map((line) => (
+                      <li key={line} className="flex gap-2">
+                        <span
+                          className="mt-2 h-1 w-1 shrink-0 rounded-full bg-emerald-500"
+                          aria-hidden
+                        />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <dl className="mt-5 grid gap-3 border-t border-emerald-100/90 pt-4 text-xs text-slate-600 sm:grid-cols-2">
+                <div>
+                  <dt className="font-medium text-slate-500">Shelf life (heuristic)</dt>
+                  <dd className="mt-1">{product.pop.shelfLifeRationale}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">
+                    FDA unapproved-ingredient list (title)
+                  </dt>
+                  <dd className="mt-1">
+                    <span className="font-semibold text-slate-800">
+                      {product.pop.fdaIngredientListStatus === "approved"
+                        ? "Approved"
+                        : "Not approved"}
+                    </span>
+                    {" — "}
+                    {product.pop.fdaRationale}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-medium text-slate-500">Tariff / trade hint</dt>
+                  <dd className="mt-1">{product.pop.tariffRationale}</dd>
+                  {product.pop.countryOfOriginHint ? (
+                    <p className="mt-1 text-slate-500">
+                      Origin hint: {product.pop.countryOfOriginHint}
+                    </p>
+                  ) : null}
+                </div>
+              </dl>
             </section>
 
             <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-card">

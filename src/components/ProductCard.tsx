@@ -55,8 +55,49 @@ export function ProductCard({ product, muted }: ProductCardProps) {
             muted ? "mt-1 text-[11px] text-slate-400" : "mt-1 text-xs text-slate-500"
           }
         >
-          {product.category}
+          PoP: {product.pop.popCategory}
         </p>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {product.pop.fdaIngredientListStatus === "approved" ? (
+            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-900">
+              FDA list: Approved
+            </span>
+          ) : (
+            <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-medium text-rose-900">
+              FDA list: Not approved
+            </span>
+          )}
+          {product.pop.tariffOrTradeRisk ? (
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-950">
+              Tariff / trade flag
+            </span>
+          ) : null}
+          {product.pop.shelfLifeExceeds12Months ? (
+            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-900">
+              ≥12 mo (est.)
+            </span>
+          ) : (
+            <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-900">
+              Shelf-life risk
+            </span>
+          )}
+        </div>
+        {product.pop.lineExtensionIdeas.length > 0 ? (
+          <p className="mt-2 text-[10px] leading-snug text-slate-500 line-clamp-2">
+            <span className="font-medium text-slate-600">Line ideas: </span>
+            {product.pop.lineExtensionIdeas.join(" · ")}
+          </p>
+        ) : null}
+        <div className="mt-2 flex flex-wrap gap-1">
+          {product.pop.opportunityAngles.map((a) => (
+            <span
+              key={a}
+              className="rounded border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-700"
+            >
+              {a === "distribute_existing" ? "Distribute SKU" : "PoP-branded dev"}
+            </span>
+          ))}
+        </div>
         <div className="mt-3 flex items-baseline justify-between gap-2">
           <span
             className={

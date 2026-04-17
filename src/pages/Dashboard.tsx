@@ -7,18 +7,10 @@ import { TopOpportunitiesWeek } from "@/components/TopOpportunitiesWeek";
 import { TrendCard } from "@/components/TrendCard";
 import { RetailPlanPanel } from "@/components/RetailPlanPanel";
 import { GptAnalyzePanel } from "@/components/GptAnalyzePanel";
+import { DiscoveryRibbon } from "@/components/DiscoveryRibbon";
 import { mergeCategoryOptions } from "@/data/shelfCategories";
 
-const markets = [
-  "All markets",
-  "Amazon US",
-  "Yamibuy",
-  "Amazon CA",
-  "Amazon UK",
-  "Amazon MX",
-] as const;
-
-const timeRanges = ["Last 24 hours", "Last 7 days", "Last 30 days"] as const;
+const markets = ["All markets", "Amazon US", "Yamibuy"] as const;
 
 function filterProducts(
   list: EnrichedProduct[],
@@ -29,14 +21,16 @@ function filterProducts(
   const q = query.trim().toLowerCase();
   return list.filter((p) => {
     const catOk =
-      category === "All categories" ? true : p.category === category;
+      category === "All categories" ? true : p.pop.popCategory === category;
     const marketOk =
       market === "All markets"
         ? true
-        : market === "Yamibuy"
-          ? (p.retailer ?? "amazon") === "yamibuy"
-          : p.buyer.marketplaces.includes(market);
-    const text = `${p.title} ${p.category}`.toLowerCase();
+        : market === "Amazon US"
+          ? (p.retailer ?? "amazon") === "amazon"
+          : market === "Yamibuy"
+            ? p.retailer === "yamibuy"
+            : false;
+    const text = `${p.title} ${p.pop.popCategory}`.toLowerCase();
     const searchOk = q.length === 0 ? true : text.includes(q);
     return catOk && marketOk && searchOk;
   });
@@ -46,6 +40,7 @@ export function Dashboard() {
   const {
     products,
     shelfCategories,
+    discoveryMeta,
     categoryTrends,
     dashboardKpis,
     loading,
@@ -56,12 +51,9 @@ export function Dashboard() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All categories");
   const [market, setMarket] = useState<(typeof markets)[number]>("All markets");
-  const [timeRange, setTimeRange] =
-    useState<(typeof timeRanges)[number]>("Last 7 days");
-
   const categoryOptions = useMemo(() => {
     const merged = mergeCategoryOptions(
-      products.map((p) => p.category),
+      products.map((p) => p.pop.popCategory),
       shelfCategories,
     );
     return ["All categories", ...merged];
@@ -111,15 +103,19 @@ export function Dashboard() {
             Live Product Radar
           </h1>
           <p className="mt-1 max-w-xl text-xs leading-relaxed text-slate-400">
-            Amazon listings via ScraperAPI (HTML) plus optional Yamibuy rows from JSON —
-            Opportunity Score merges snapshot history. Use the calendar below for
-            30–60d planning; it is not live sales data.
+            PoP discovery prototype: multiple public signals, PoP category + compliance
+            heuristics, and line-extension ideas. Rankings use a{" "}
+            <strong className="font-medium text-slate-500">rolling 7-day</strong> snapshot
+            window — there is no separate 24h or 30d score yet (those windows would need
+            stored history).
           </p>
         </div>
-        <p className="text-[11px] tabular-nums text-slate-400">
-          Window: {timeRange} · Rolling 7d signals
+        <p className="max-w-xs text-[11px] leading-relaxed text-slate-400">
+          Signals: 7-day velocity · PoP filters on each SKU
         </p>
       </header>
+
+      {discoveryMeta ? <DiscoveryRibbon meta={discoveryMeta} /> : null}
 
       <RetailPlanPanel />
 
@@ -151,7 +147,7 @@ export function Dashboard() {
                   id="search"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by title or category…"
+                  placeholder="Search by title or PoP category…"
                   disabled={loading && products.length === 0}
                   className="w-full rounded-lg border border-slate-200/90 bg-white/90 py-2.5 pl-10 pr-3 text-sm text-slate-700 shadow-none placeholder:text-slate-400 focus:border-slate-300/80 focus:outline-none focus:ring-1 focus:ring-slate-200 disabled:opacity-50"
                 />
@@ -170,13 +166,6 @@ export function Dashboard() {
                 value={market}
                 onChange={(v) => setMarket(v as (typeof markets)[number])}
                 options={[...markets]}
-                quiet
-              />
-              <FilterSelect
-                label="Time range"
-                value={timeRange}
-                onChange={(v) => setTimeRange(v as (typeof timeRanges)[number])}
-                options={[...timeRanges]}
                 quiet
               />
             </div>

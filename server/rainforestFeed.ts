@@ -1,16 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { EnrichedProduct } from "../src/data/catalog";
+import { computeOpportunity } from "../src/data/opportunityEngine";
+import type { EnrichedProductInput } from "../src/data/catalog";
 import type { Product, ProductSnapshot } from "../src/data/types";
-import {
-  amazonCompositeFromProduct,
-  arbitrageScore,
-  checkWalmartGap,
-  getRedditSignal,
-  getTrendScores,
-  opportunityFromArbitrage,
-} from "./arbitrageSignals";
 import { defaultBuyerNotes } from "./defaultBuyer";
 import { matchShelfCategory } from "../src/data/shelfCategories";
 import { defaults } from "./config";
@@ -106,23 +99,16 @@ function snapshotsFromLiveAmazon(args: {
 }
 
 /**
- * Real Amazon listings via Rainforest + arbitrage-style score (Trends / Reddit / Walmart / Amazon).
+ * Real Amazon listings via Rainforest API (search + product).
  * Set FEED_MODE=rainforest and RAINFOREST_API_KEY.
  */
-export async function buildEnrichedProductsFromRainforest(): Promise<EnrichedProduct[]> {
+export async function buildEnrichedProductsFromRainforest(): Promise<EnrichedProductInput[]> {
   const amazonDomain =
     process.env.RAINFOREST_AMAZON_DOMAIN?.trim() || defaults.amazonDomain || "amazon.com";
   const rows = loadArbitrageProductRows();
-  const displayNames = rows.map((r) => r.displayName);
-
-  const trends = await getTrendScores(displayNames);
-  const out: EnrichedProduct[] = [];
+  const out: EnrichedProductInput[] = [];
 
   for (const row of rows) {
-    const trend = trends[row.displayName] ?? 0;
-    const reddit = await getRedditSignal(row.displayName);
-    const walmart = await checkWalmartGap(row.displayName);
-
     let asin: string | null = null;
     let image = "";
     let title = row.displayName;
@@ -162,31 +148,9 @@ export async function buildEnrichedProductsFromRainforest(): Promise<EnrichedPro
       });
     }
 
-    const amazonComposite = productPayload
-      ? amazonCompositeFromProduct(productPayload)
-      : 70;
-
-    const priceVal =
-      productPayload?.buybox_winner?.price?.value ?? 0;
+    const priceVal = productPayload?.buybox_winner?.price?.value ?? 0;
     const rating = productPayload?.rating ?? 0;
     const reviewCount = productPayload?.ratings_total ?? 0;
-
-    const score = arbitrageScore(
-      trend,
-      reddit.signal,
-      walmart.gap,
-      amazonComposite,
-    );
-
-    const opp = opportunityFromArbitrage({
-      score,
-      displayName: row.displayName,
-      trend,
-      redditMentions: reddit.mentions,
-      redditSignal: reddit.signal,
-      walmartGap: walmart.gap,
-      amazonComposite,
-    });
 
     const finalAsin =
       asin ??
@@ -197,9 +161,7 @@ export async function buildEnrichedProductsFromRainforest(): Promise<EnrichedPro
     const base: Product = {
       asin: finalAsin,
       title,
-      image:
-        image ||
-        "https://via.placeholder.com/400?text=No+image",
+      image: image || "https://via.placeholder.com/400?text=No+image",
       category: matchShelfCategory(
         row.category ?? "",
         defaults.shelfCategories,
@@ -219,19 +181,22 @@ export async function buildEnrichedProductsFromRainforest(): Promise<EnrichedPro
       reviewCount,
     });
 
+    const opp = computeOpportunity(snapshotsResolved);
+
     const notes = defaultBuyerNotes(finalAsin, title, "amazon");
     out.push({
       ...base,
       ...opp,
       buyer: {
         ...notes,
-        suggestedNextAction: `Arbitrage score ${score} — validate MOQ and MAP before PO.`,
+        suggestedNextAction:
+          "Validate MOQ and MAP before PO — score is from Amazon snapshot signals only.",
       },
       snapshots: snapshotsResolved,
       activeSources: ["Search"],
     });
 
-    await sleep(1000);
+    await sleep(400);
   }
 
   return out.sort((a, b) => b.opportunityScore - a.opportunityScore);

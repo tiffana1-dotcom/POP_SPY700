@@ -1,20 +1,21 @@
-import type { EnrichedProduct } from "../src/data/catalog";
+import type { EnrichedProduct, EnrichedProductInput } from "../src/data/catalog";
 import { buildEnrichedProductsFromGpt } from "./gptFeed";
 import { buildEnrichedProductsFromScraper } from "./feedBuilder";
 import { buildEnrichedProductsFromRainforest } from "./rainforestFeed";
+import { attachPopLayer } from "./popEnrichment";
 import { hasScrapeCredentials } from "./scraperClient";
 import { loadFeedSnapshot } from "./snapshotFeed";
 
-function retailerKey(p: EnrichedProduct): string {
+function retailerKey(p: EnrichedProductInput): string {
   return `${p.retailer ?? "amazon"}:${p.asin}`;
 }
 
 /** Snapshot rows first (e.g. Yamibuy), then live Amazon — same retailer+asin wins from `live`. */
 export function mergeByRetailerAsin(
-  snapshot: EnrichedProduct[],
-  live: EnrichedProduct[],
-): EnrichedProduct[] {
-  const map = new Map<string, EnrichedProduct>();
+  snapshot: EnrichedProductInput[],
+  live: EnrichedProductInput[],
+): EnrichedProductInput[] {
+  const map = new Map<string, EnrichedProductInput>();
   for (const p of snapshot) map.set(retailerKey(p), p);
   for (const p of live) map.set(retailerKey(p), p);
   return [...map.values()];
@@ -26,38 +27,38 @@ export function mergeByRetailerAsin(
  * - `scraper` — HTML scrape via ScraperAPI / Bright Data
  * - `snapshot` — JSON only (`server/data/feed-snapshot.json` or example)
  * - `combined` — snapshot + live Amazon scrape
- * - `rainforest` — Rainforest API search+product (real images), plus Trends/Reddit/Walmart arbitrage score
+ * - `rainforest` — Rainforest API search+product (real images), scored from Amazon snapshots
  */
 export async function resolveFeed(): Promise<EnrichedProduct[]> {
   const mode = (process.env.FEED_MODE ?? "gpt").toLowerCase();
 
+  let products: EnrichedProductInput[];
+
   if (mode === "snapshot") {
-    return loadFeedSnapshot();
-  }
-
-  if (mode === "rainforest") {
-    return buildEnrichedProductsFromRainforest();
-  }
-
-  if (mode === "combined") {
+    products = loadFeedSnapshot();
+  } else if (mode === "rainforest") {
+    products = await buildEnrichedProductsFromRainforest();
+  } else if (mode === "combined") {
     const snap = loadFeedSnapshot();
-    if (!hasScrapeCredentials()) return snap;
-    try {
-      const live = await buildEnrichedProductsFromScraper();
-      return mergeByRetailerAsin(snap, live);
-    } catch {
-      return snap;
+    if (!hasScrapeCredentials()) {
+      products = snap;
+    } else {
+      try {
+        const live = await buildEnrichedProductsFromScraper();
+        products = mergeByRetailerAsin(snap, live);
+      } catch {
+        products = snap;
+      }
     }
-  }
-
-  if (mode === "gpt") {
-    return buildEnrichedProductsFromGpt();
-  }
-
-  if (!hasScrapeCredentials()) {
+  } else if (mode === "gpt") {
+    products = await buildEnrichedProductsFromGpt();
+  } else if (!hasScrapeCredentials()) {
     throw new Error(
       "Missing scrape credentials, or use FEED_MODE=gpt (OPENAI_API_KEY), FEED_MODE=rainforest (RAINFOREST_API_KEY), or FEED_MODE=snapshot.",
     );
+  } else {
+    products = await buildEnrichedProductsFromScraper();
   }
-  return buildEnrichedProductsFromScraper();
+
+  return attachPopLayer(products);
 }

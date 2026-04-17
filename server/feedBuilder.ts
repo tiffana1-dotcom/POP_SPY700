@@ -1,7 +1,7 @@
 import { computeOpportunity } from "../src/data/opportunityEngine";
 import type { Product } from "../src/data/types";
 import type { ProductSnapshot } from "../src/data/types";
-import type { EnrichedProduct } from "../src/data/catalog";
+import type { EnrichedProductInput } from "../src/data/catalog";
 import { defaultBuyerNotes } from "./defaultBuyer";
 import {
   fetchAndParseBestsellers,
@@ -47,7 +47,7 @@ function searchRowToBestseller(
 }
 
 /** Live Amazon lists via ScraperAPI or Bright Data proxy (HTML fetch + parse). */
-export async function buildEnrichedProductsFromScraper(): Promise<EnrichedProduct[]> {
+export async function buildEnrichedProductsFromScraper(): Promise<EnrichedProductInput[]> {
   const max = defaults.maxPerList;
 
   const [rowsBs, rowsMovers, rowsNr, ...searchRowLists] = await Promise.all([
@@ -124,7 +124,7 @@ export async function buildEnrichedProductsFromScraper(): Promise<EnrichedProduc
   }
 
   const capturedAt = new Date().toISOString();
-  const out: EnrichedProduct[] = [];
+  const out: EnrichedProductInput[] = [];
 
   for (const rec of merged.values()) {
     const snapshots: ProductSnapshot[] = rec.appearances.map((a) => ({

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { computeOpportunity } from "../src/data/opportunityEngine";
-import type { EnrichedProduct } from "../src/data/catalog";
+import type { EnrichedProductInput } from "../src/data/catalog";
 import type { Product, ProductSnapshot, Retailer, SourceType } from "../src/data/types";
 import { defaultBuyerNotes } from "./defaultBuyer";
 
@@ -68,7 +68,7 @@ function parseOne(raw: unknown): { base: Product; snapshots: ProductSnapshot[] }
  * Load merged catalog from JSON (manual edits, scraper output, or exports).
  * Prefer `server/data/feed-snapshot.json`; fall back to `feed-snapshot.example.json`.
  */
-export function loadFeedSnapshot(): EnrichedProduct[] {
+export function loadFeedSnapshot(): EnrichedProductInput[] {
   const root = process.cwd();
   const preferred = path.join(root, "server", "data", "feed-snapshot.json");
   const example = path.join(root, "server", "data", "feed-snapshot.example.json");
@@ -77,7 +77,7 @@ export function loadFeedSnapshot(): EnrichedProduct[] {
   const data = JSON.parse(text) as unknown;
   if (!Array.isArray(data)) throw new Error("feed snapshot must be a JSON array");
 
-  const out: EnrichedProduct[] = [];
+  const out: EnrichedProductInput[] = [];
   for (const row of data) {
     const { base, snapshots } = parseOne(row);
     const opp = computeOpportunity(snapshots);

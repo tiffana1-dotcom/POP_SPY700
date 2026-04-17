@@ -16,11 +16,14 @@ import {
 import type { CategoryTrend } from "@/data/types";
 import type { WatchlistEntry } from "@/data/types";
 import { SHELF_CATEGORIES } from "@/data/shelfCategories";
+import type { DiscoveryMeta } from "@/data/popDiscovery";
 
 interface TrendFeedContextValue {
   products: EnrichedProduct[];
   /** Canonical shelf list from the API (aligned with \`FEED_SHELF_CATEGORIES\`). */
   shelfCategories: string[];
+  /** Public sources + cached Yami snapshot metadata from \`/api/feed\`. */
+  discoveryMeta: DiscoveryMeta | null;
   categoryTrends: CategoryTrend[];
   dashboardKpis: ReturnType<typeof buildDashboardKpisFromProducts>;
   watchlistEntries: WatchlistEntry[];
@@ -54,6 +57,7 @@ function isTransientNetworkError(e: unknown): boolean {
 export function TrendFeedProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<EnrichedProduct[]>([]);
   const [shelfCategories, setShelfCategories] = useState<string[]>([...SHELF_CATEGORIES]);
+  const [discoveryMeta, setDiscoveryMeta] = useState<DiscoveryMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,6 +86,7 @@ export function TrendFeedProvider({ children }: { children: ReactNode }) {
       let data: {
         products?: EnrichedProduct[];
         shelfCategories?: string[];
+        discoveryMeta?: DiscoveryMeta;
         error?: string;
       } = {};
       if (text) {
@@ -102,6 +107,7 @@ export function TrendFeedProvider({ children }: { children: ReactNode }) {
         throw new Error(detail || `HTTP ${res.status}`);
       }
       setProducts(data.products ?? []);
+      setDiscoveryMeta(data.discoveryMeta ?? null);
       if (Array.isArray(data.shelfCategories) && data.shelfCategories.length > 0) {
         setShelfCategories(data.shelfCategories);
       } else {
@@ -111,6 +117,7 @@ export function TrendFeedProvider({ children }: { children: ReactNode }) {
       const raw = e instanceof Error ? e.message : "Failed to load product feed";
       setError(explainFeedError(raw));
       setProducts([]);
+      setDiscoveryMeta(null);
       setShelfCategories([...SHELF_CATEGORIES]);
     } finally {
       setLoading(false);
@@ -161,6 +168,7 @@ export function TrendFeedProvider({ children }: { children: ReactNode }) {
     (): TrendFeedContextValue => ({
       products,
       shelfCategories,
+      discoveryMeta,
       categoryTrends,
       dashboardKpis,
       watchlistEntries,
@@ -172,6 +180,7 @@ export function TrendFeedProvider({ children }: { children: ReactNode }) {
     [
       products,
       shelfCategories,
+      discoveryMeta,
       categoryTrends,
       dashboardKpis,
       watchlistEntries,

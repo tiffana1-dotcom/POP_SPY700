@@ -1,4 +1,5 @@
 import type { OpportunityResult } from "./opportunityEngine";
+import type { PopOpportunityFields } from "./popDiscovery";
 import type { Product, ProductBuyerNotes, ProductSnapshot } from "./types";
 
 export interface EnrichedProduct extends Product, OpportunityResult {
@@ -6,7 +7,12 @@ export interface EnrichedProduct extends Product, OpportunityResult {
   snapshots: ProductSnapshot[];
   /** Distinct signal lists seen in the rolling window */
   activeSources: string[];
+  /** PoP sourcing: shelf-life / FDA / tariff heuristics + line ideas (server-side) */
+  pop: PopOpportunityFields;
 }
+
+/** Built by feed modes before PoP compliance + Yami snapshot layer is attached. */
+export type EnrichedProductInput = Omit<EnrichedProduct, "pop">;
 
 export function findEnrichedByAsin(
   products: EnrichedProduct[],

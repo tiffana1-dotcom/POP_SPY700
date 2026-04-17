@@ -21,9 +21,10 @@ export function buildCategoryTrendsFromProducts(
 ): CategoryTrend[] {
   const byCat = new Map<string, EnrichedProduct[]>();
   for (const p of products) {
-    const arr = byCat.get(p.category) ?? [];
+    const label = p.pop.popCategory;
+    const arr = byCat.get(label) ?? [];
     arr.push(p);
-    byCat.set(p.category, arr);
+    byCat.set(label, arr);
   }
 
   const names =

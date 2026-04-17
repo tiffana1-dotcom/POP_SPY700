@@ -1,9 +1,10 @@
-/** Canonical shelf categories for filters and feed labeling. */
+/** PoP buyer taxonomy — filters & GPT labeling (override via FEED_SHELF_CATEGORIES). */
 export const SHELF_CATEGORIES = [
-  "Snacks",
-  "Grocery",
-  "Beverage",
-  "Beauty",
+  "Dry goods",
+  "Confections",
+  "Teas",
+  "Personal care",
+  "Health & wellness",
 ] as const;
 
 export type ShelfCategory = (typeof SHELF_CATEGORIES)[number];

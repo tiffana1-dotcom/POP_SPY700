@@ -5,6 +5,7 @@ import "express-async-errors";
 import { analyzeRetailSnippet } from "./gptAnalyze";
 import { hasScrapeCredentials } from "./scraperClient";
 import { defaults } from "./config";
+import { getDiscoveryMeta } from "./popEnrichment";
 import { resolveFeed } from "./resolveFeed";
 
 export function createTrendScoutApp(): express.Application {
@@ -57,7 +58,11 @@ export function createTrendScoutApp(): express.Application {
       return;
     }
     const products = await resolveFeed();
-    res.json({ products, shelfCategories: defaults.shelfCategories });
+    res.json({
+      products,
+      shelfCategories: defaults.shelfCategories,
+      discoveryMeta: getDiscoveryMeta(),
+    });
   });
 
   app.post("/api/analyze", async (req, res) => {

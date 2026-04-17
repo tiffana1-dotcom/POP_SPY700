@@ -203,3 +203,17 @@ export function bsrFromProduct(p: RainforestProductPayload): number | null {
   }
   return typeof best?.rank === "number" ? best.rank : null;
 }
+
+/** Heuristic 0–100 strength from live Amazon listing fields (used for diagnostics only). */
+export function amazonCompositeFromProduct(p: RainforestProductPayload): number {
+  const sellerCount = p.marketplace_sellers_count ?? 99;
+  const bsr = bsrFromProduct(p);
+  const rating = p.rating ?? 0;
+  const reviewCount = p.ratings_total ?? 0;
+
+  const sellerScore = Math.max(0, 100 - sellerCount * 8);
+  const bsrScore = bsr != null ? Math.max(0, 100 - bsr / 500) : 30;
+  const reviewScore = reviewCount > 20 ? Math.min(rating * 15, 75) : 10;
+
+  return Math.round(sellerScore * 0.5 + bsrScore * 0.3 + reviewScore * 0.2);
+}

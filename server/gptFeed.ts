@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { computeOpportunity } from "../src/data/opportunityEngine";
-import type { EnrichedProduct } from "../src/data/catalog";
+import type { EnrichedProductInput } from "../src/data/catalog";
 import type { Product, ProductSnapshot } from "../src/data/types";
 import { defaultBuyerNotes } from "./defaultBuyer";
 import { defaults } from "./config";
@@ -144,7 +144,7 @@ function coerceNumber(v: unknown, fallback: number): number {
 /**
  * LLM-generated “radar” products — not live Amazon data. Good for demos without scrapers.
  */
-export async function buildEnrichedProductsFromGpt(): Promise<EnrichedProduct[]> {
+export async function buildEnrichedProductsFromGpt(): Promise<EnrichedProductInput[]> {
   const max = Math.min(20, defaults.maxPerList * 2);
   const themes = defaults.searchQueries.join("; ") || "Asian snacks, tea, pantry staples";
 
@@ -184,7 +184,7 @@ Rules: items.length must be ${max}. Each asin must be exactly 10 alphanumeric ch
     throw new Error("GPT returned no items — try again or check OPENAI_MODEL");
   }
 
-  const out: EnrichedProduct[] = [];
+  const out: EnrichedProductInput[] = [];
   const usedAsins = new Set<string>();
 
   for (const item of items.slice(0, max)) {
