@@ -16,12 +16,6 @@ CACHE_FILE = DATA_DIR / "cache.json"
 RAINFOREST_API_KEY = (os.environ.get("RAINFOREST_API_KEY") or "").strip()
 AMAZON_DOMAIN = (os.environ.get("AMAZON_DOMAIN") or "amazon.com").strip()
 
-# Walmart — either legacy-style key (WM_CONSUMER.ID) or OAuth client credentials
-WALMART_KEY = (os.environ.get("WALMART_KEY") or "").strip()
-WALMART_CLIENT_ID = (os.environ.get("WALMART_CLIENT_ID") or "").strip()
-WALMART_CLIENT_SECRET = (os.environ.get("WALMART_CLIENT_SECRET") or "").strip()
-WALMART_PUBLISHER_ID = (os.environ.get("WALMART_PUBLISHER_ID") or "").strip()
-
 # Reddit: public JSON — descriptive User-Agent required; optional comma-separated subreddits
 REDDIT_USER_AGENT = (
     os.environ.get("REDDIT_USER_AGENT") or "BeverageTrendScout/1.0 (educational; contact@localhost)"

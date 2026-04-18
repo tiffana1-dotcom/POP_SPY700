@@ -1,4 +1,4 @@
-"""End-to-end beverage pipeline: Rainforest + Trends + Walmart + Reddit."""
+"""End-to-end beverage pipeline: Rainforest + Trends + Reddit."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import rainforest_client as rf
 import reddit_client
 import scoring
 import trends_client
-import walmart_client
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +26,6 @@ def build_feed() -> dict[str, Any]:
     source_status: dict[str, str] = {
         "rainforest": "skipped",
         "google_trends": "pending",
-        "walmart": "pending",
         "reddit": "pending",
     }
     rows: list[dict[str, Any]] = []
@@ -87,10 +85,9 @@ def build_feed() -> dict[str, Any]:
         if tr.get("ok"):
             trends_ok += 1
 
-        wm = walmart_client.search_product(kw)
         rd = reddit_client.search_mentions(kw)
 
-        meta = scoring.build_opportunity(amazon, tr, wm, rd)
+        meta = scoring.build_opportunity(amazon, tr, rd)
         bev_type = beverages.classify_beverage_type(amazon["title"])
         ap = amazon.get("price")
         if isinstance(ap, (int, float)) and ap > 0:
@@ -109,8 +106,7 @@ def build_feed() -> dict[str, Any]:
                 "image": amazon.get("image") or row.get("image") or "",
                 "description": (
                     f"{amazon['title']} — tracked as a beverage SKU on {config.AMAZON_DOMAIN}. "
-                    f"Opportunity blends Amazon listing strength, US search interest, Walmart parity (if found), "
-                    f"and recent Reddit mentions."
+                    f"Opportunity blends Amazon listing strength, US search interest, and recent Reddit mentions."
                 ),
                 "buyer": {
                     "sourcing_strategy": (
@@ -134,7 +130,6 @@ def build_feed() -> dict[str, Any]:
                     "change_note": tr.get("change_note"),
                     "ok": bool(tr.get("ok")),
                 },
-                "walmart": wm,
                 "reddit": {
                     "mentions": rd.get("mentions"),
                     "signal": rd.get("signal"),
@@ -148,11 +143,6 @@ def build_feed() -> dict[str, Any]:
         )
 
     source_status["google_trends"] = "ok" if trends_ok else "degraded"
-    source_status["walmart"] = (
-        "ok"
-        if (config.WALMART_KEY or (config.WALMART_CLIENT_ID and config.WALMART_CLIENT_SECRET))
-        else "skipped_no_credentials"
-    )
     source_status["reddit"] = "ok"
 
     opportunities.sort(key=lambda x: int(x.get("opportunity_score") or 0), reverse=True)
@@ -192,16 +182,6 @@ def seed_demo_feed() -> dict[str, Any]:
                 "change_note": "Demo data",
                 "ok": True,
             },
-            "walmart": {
-                "found": True,
-                "walmart_count": 4,
-                "gap": "low",
-                "title": "Demo match — Electrolyte Sparkling 12pk",
-                "price": 22.5,
-                "item_id": "demo-wm",
-                "url": "",
-                "note": "Demo",
-            },
             "reddit": {
                 "mentions": 18,
                 "signal": "high",
@@ -225,7 +205,7 @@ def seed_demo_feed() -> dict[str, Any]:
             "risk": {
                 "level": "Medium",
                 "factors": [
-                    "Demo mode — replace with live Walmart + Reddit + Trends reads.",
+                    "Demo mode — replace with live Reddit + Trends reads.",
                     "Ultra-competitive BSR band — incumbent-heavy.",
                 ],
             },
@@ -256,12 +236,6 @@ def seed_demo_feed() -> dict[str, Any]:
                 "change_note": "Search interest roughly stable",
                 "ok": True,
             },
-            "walmart": {
-                "found": False,
-                "walmart_count": 0,
-                "gap": "high",
-                "note": "No catalog hits (demo)",
-            },
             "reddit": {
                 "mentions": 4,
                 "signal": "med",
@@ -276,7 +250,6 @@ def seed_demo_feed() -> dict[str, Any]:
             "card_explanation": "Demo: moderate opportunity with thinner social proof.",
             "explanation_bullets": [
                 "Stable search with mid-tier Amazon reviews.",
-                "Walmart parity not verified in demo.",
             ],
             "trend_outlook": "Demo outlook: steady niche; win on placement and formulation story.",
             "risk": {
@@ -298,7 +271,6 @@ def seed_demo_feed() -> dict[str, Any]:
         "source_status": {
             "rainforest": "demo",
             "google_trends": "demo",
-            "walmart": "demo",
             "reddit": "demo",
         },
         "beverage_types": beverages.BEVERAGE_TYPES_ORDER,

@@ -20,7 +20,6 @@ def recommendation_from_score(score: float) -> str:
 def build_opportunity(
     amazon: dict[str, Any],
     trends: dict[str, Any],
-    walmart: dict[str, Any],
     reddit: dict[str, Any],
 ) -> dict[str, Any]:
     bsr = amazon.get("bsr")
@@ -38,41 +37,17 @@ def build_opportunity(
 
     reddit_score = float(reddit.get("score") or 25)
 
-    walmart_bonus = 0.0
-    walmart_risk_note = ""
-    gap = str(walmart.get("gap") or "").lower()
-    wm_count = walmart.get("walmart_count")
-    if walmart.get("found"):
-        if gap == "low":
-            walmart_bonus = 10.0
-        elif gap == "med":
-            walmart_bonus = 7.0
-        else:
-            walmart_bonus = 6.0
-        amz_p = amazon.get("price")
-        wm_p = walmart.get("price")
-        if isinstance(amz_p, (int, float)) and isinstance(wm_p, (int, float)) and wm_p > 0:
-            spread = (wm_p - float(amz_p)) / float(amz_p)
-            if spread < -0.12:
-                walmart_risk_note = "Walmart priced meaningfully lower — margin pressure if you match Amazon shelf."
-            elif spread > 0.15:
-                walmart_risk_note = "Amazon priced below Walmart on this match — check MAP / parity risk."
-    elif gap == "high" and isinstance(wm_count, int) and wm_count == 0:
-        walmart_bonus = 5.0
-        walmart_risk_note = "No Walmart catalog hits for this query — possible shelf gap or title mismatch vs Walmart taxonomy."
-
     review_signal = _clamp(min(22.0, (reviews**0.35) * 3.2))
     rating_signal = 0.0
     if rating_f is not None:
         rating_signal = _clamp((rating_f - 3.9) * 18.0)
 
     raw = (
-        bsr_score * 0.34
-        + trend_score * 0.26
-        + reddit_score * 0.18
-        + review_signal * 0.12
-        + rating_signal * 0.06
-        + walmart_bonus
+        bsr_score * 0.38
+        + trend_score * 0.28
+        + reddit_score * 0.20
+        + review_signal * 0.10
+        + rating_signal * 0.04
     )
     opportunity_score = int(round(_clamp(raw)))
 
@@ -92,12 +67,6 @@ def build_opportunity(
     if sig == "low" or (isinstance(reddit.get("mentions"), int) and int(reddit.get("mentions") or 0) <= 3):
         risk_points += 1
         factors.append("Limited Reddit mentions across target beverage subs — social proof is thin.")
-    if walmart_risk_note:
-        factors.append(walmart_risk_note)
-    if isinstance(wm_count, int) and wm_count < 0:
-        factors.append("Walmart search failed or credentials rejected — parity unknown.")
-    elif not walmart.get("found") and gap != "high":
-        factors.append("No Walmart match — retail parity unchecked for this title.")
 
     if risk_points >= 4:
         level = "High"
@@ -139,21 +108,6 @@ def build_opportunity(
         f"Reddit: {int(reddit.get('mentions') or 0)} post hits across tracked subs (signal: {reddit.get('signal', 'n/a')}); "
         f"{len(reddit.get('posts') or [])} sample titles.",
     ]
-    if isinstance(wm_count, int) and wm_count >= 0:
-        bullets.append(
-            f"Walmart: {wm_count} catalog hit(s), gap={gap or 'n/a'}"
-            + (
-                f" — {walmart.get('title', '')[:70]}"
-                if walmart.get("found") and walmart.get("title")
-                else ""
-            )
-            + (
-                f", ${round(float(walmart['price']), 2)}"
-                if isinstance(walmart.get("price"), (int, float))
-                else ""
-            )
-            + ".",
-        )
 
     card_explanation = (headline[:110] + ("…" if len(headline) > 110 else "")).strip()
 

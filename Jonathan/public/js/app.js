@@ -136,7 +136,6 @@ function renderMeta() {
   const parts = [
     `Rainforest: ${st.rainforest || "?"}`,
     `Trends: ${st.google_trends || "?"}`,
-    `Walmart: ${st.walmart || "?"}`,
     `Reddit: ${st.reddit || "?"}`,
   ];
   status.textContent = state.feed.cache_stale ? "Cache (stale)" : "Cache (fresh)";

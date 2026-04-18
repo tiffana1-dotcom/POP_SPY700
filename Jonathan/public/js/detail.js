@@ -39,7 +39,6 @@ async function boot() {
 
   const amz = p.amazon || {};
   const gt = p.google_trends || {};
-  const wm = p.walmart || {};
   const rd = p.reddit || {};
   const risk = p.risk || {};
   const buyer = p.buyer || {};
@@ -122,7 +121,7 @@ async function boot() {
         <section class="panel pad">
           <h2 class="section-title" style="margin:0">Forward risk</h2>
           <p style="margin:0.75rem 0 0;font-size:0.875rem;color:#64748b">
-            Risk summarizes how aggressive we’d be stocking or listing this SKU given Amazon competitiveness, signal quality, and parity checks.
+            Risk summarizes how aggressive we’d be stocking or listing this SKU given Amazon competitiveness and signal quality.
           </p>
           <div style="margin-top:0.75rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
             <span class="risk ${riskClass(risk.level)}">${esc(risk.level || "Unknown")}</span>
@@ -166,22 +165,6 @@ async function boot() {
           <ul class="bullets">
             ${(rd.sample_titles || []).map((t) => `<li>${esc(t)}</li>`).join("")}
           </ul>
-        </section>
-
-        <section class="panel pad">
-          <h2 class="section-title" style="margin:0">Walmart cross-check (catalog gap)</h2>
-          <p style="margin:0.75rem 0 0;font-size:0.875rem;color:#334155">
-            Hits: <strong>${esc(String(wm.walmart_count ?? (wm.found ? "1+" : "0")))}</strong>
-            · Gap: <strong>${esc(wm.gap || "unknown")}</strong>
-            ${wm.note ? ` · <span style="color:#64748b">${esc(wm.note)}</span>` : ""}
-          </p>
-          <p style="margin:0.5rem 0 0;font-size:0.875rem;color:#334155">
-            ${
-              wm.found
-                ? `${esc(wm.title || "")}<br/><strong>${esc(fmtMoney(wm.price))}</strong>`
-                : "<em>No matching Walmart items for this query (or search skipped).</em>"
-            }
-          </p>
         </section>
 
         <section class="panel pad">

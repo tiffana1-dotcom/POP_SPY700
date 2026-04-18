@@ -48,7 +48,7 @@ def health():
 def feed():
     """
     Returns cached opportunities for fast loads.
-    Use POST /api/refresh to rebuild from Rainforest + Trends + Walmart + Reddit.
+    Use POST /api/refresh to rebuild from Rainforest + Trends + Reddit.
     """
     payload = cache_manager.read_cache()
     if not payload:
