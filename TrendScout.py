@@ -25,6 +25,7 @@ env_setup.load_pop_dotenv()
 from buyer_copilot import analyze_product, format_product_context_for_analysis
 from copilot_page import render_copilot_gpt_result
 from forecast_engine import attach_forecast_to_dataframe, top_forecast_products
+from tariff_filter import flag_trade_risk
 from trendscout_sidebar import SORT_LABELS, render_explore_sidebar
 
 # Global master–detail selection (Forecast, Priority queue, All results share this).
@@ -351,6 +352,60 @@ def load_products(path: Path | None = None) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 
+def _tariff_score_multiplier(row: pd.Series) -> float:
+    origin = str(row.get("region_of_origin") or row.get("Region of Origin") or "").strip()
+    if origin.lower() in ("us", "usa", "u.s.", "u.s.a.", "united states of america"):
+        origin = "United States"
+
+    product_category = str(row.get("product_category") or row.get("category") or "").strip() or None
+    try:
+        trade_risk = flag_trade_risk(
+            product_name=str(row.get("amazon_title") or row.get("search_result_title") or ""),
+            country_of_origin=origin or "Unknown",
+            product_category=product_category,
+        )
+        tier = int(trade_risk.get("tier", 1))
+    except Exception:
+        tier = 1
+
+    return {
+        0: 1.00,
+        1: 0.96,
+        2: 0.88,
+        3: 0.72,
+        4: 0.50,
+    }.get(tier, 0.96)
+
+
+def _tariff_risk_badge_html(row: pd.Series) -> str:
+    origin = str(row.get("region_of_origin") or row.get("Region of Origin") or "").strip()
+    if origin.lower() in ("us", "usa", "u.s.", "u.s.a.", "united states of america"):
+        origin = "United States"
+
+    product_category = str(row.get("product_category") or row.get("category") or "").strip() or None
+    try:
+        trade_risk = flag_trade_risk(
+            product_name=str(row.get("amazon_title") or row.get("search_result_title") or ""),
+            country_of_origin=origin or "Unknown",
+            product_category=product_category,
+        )
+        tier = int(trade_risk.get("tier", 1))
+        label = str(trade_risk.get("tier_label") or "Watch list")
+    except Exception:
+        tier = 1
+        label = "Watch list"
+
+    badge_cls = {
+        0: "badge-risk badge-risk-low",
+        1: "badge-risk badge-risk-mid",
+        2: "badge-risk badge-risk-mid",
+        3: "badge-risk badge-risk-high",
+        4: "badge-risk badge-risk-high",
+    }.get(tier, "badge-risk badge-risk-mid")
+
+    return f'<span class="{badge_cls}">Tariff: {html.escape(label)}</span>'
+
+
 def compute_opportunity_score(row: pd.Series) -> float:
     """Simple 0–100 score: rating, reviews, price, search rank."""
     r = row.get("rating")
@@ -371,8 +426,8 @@ def compute_opportunity_score(row: pd.Series) -> float:
         price_pts = min(22.0, 22.0 * (25.0 / (25.0 + float(price))))
 
     rank_pts = max(0.0, 22.0 * (1.0 - min(rank - 1.0, 24.0) / 24.0))
-
-    return float(np.clip(rating_pts + review_pts + price_pts + rank_pts, 0.0, 100.0))
+    base_score = float(np.clip(rating_pts + review_pts + price_pts + rank_pts, 0.0, 100.0))
+    return float(np.clip(base_score * _tariff_score_multiplier(row), 0.0, 100.0))
 
 
 def short_reasons(row: pd.Series) -> list[str]:
@@ -1663,6 +1718,9 @@ CUSTOM_CSS = """
     margin-top: 1px;
     box-shadow: none !important;
   }
+  .ts-scan-title-row .badge-risk + .badge-risk {
+    margin-left: 8px;
+  }
   .ts-scan-title-full {
     font-size: 14px;
     font-weight: 600;
@@ -1814,7 +1872,7 @@ def render_header():
     st.markdown(
         """
 <div class="ts-page-hero">
-  <h1 class="ts-hero-title">TrendScout</h1>
+  <h1 class="ts-hero-title">SipScope</h1>
   <p class="ts-hero-tagline">Retail buying signals</p>
 </div>
         """,
@@ -2544,7 +2602,7 @@ def render_product_cards(
 
 def main():
     st.set_page_config(
-        page_title="TrendScout",
+        page_title="SipScope",
         page_icon="◆",
         layout="wide",
         initial_sidebar_state="expanded",
